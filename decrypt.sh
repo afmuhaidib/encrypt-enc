@@ -15,6 +15,7 @@ print ""
 read -rs "PASSWORD?Enter decryption password: "
 print ""
 
-python3 "$SCRIPT_DIR/_enc_core.py" decrypt "$SCRIPT_DIR/output" "$SCRIPT_DIR/decrypted" "$PASSWORD"
+# Pass password via stdin — never via argv (visible in ps aux)
+print "$PASSWORD" | python3 "$SCRIPT_DIR/_enc_core.py" decrypt "$SCRIPT_DIR/output" "$SCRIPT_DIR/decrypted"
 
 PASSWORD=""

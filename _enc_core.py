@@ -11,6 +11,7 @@ File format (.enc):
 
 import sys
 import os
+import getpass
 from pathlib import Path
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -65,11 +66,13 @@ def decrypt_file(src: Path, dst: Path, password: str) -> None:
 
 
 def main():
-    if len(sys.argv) != 5:
-        print(f"Usage: {sys.argv[0]} encrypt|decrypt <input_dir> <output_dir> <password>")
+    if len(sys.argv) != 4:
+        print(f"Usage: {sys.argv[0]} encrypt|decrypt <input_dir> <output_dir>")
         sys.exit(1)
 
-    mode, input_dir, output_dir, password = sys.argv[1], Path(sys.argv[2]), Path(sys.argv[3]), sys.argv[4]
+    mode, input_dir, output_dir = sys.argv[1], Path(sys.argv[2]), Path(sys.argv[3])
+    # Read password from stdin (piped from shell) — never from argv to avoid ps aux leakage
+    password = sys.stdin.readline().rstrip("\n")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if mode == "encrypt":

@@ -27,7 +27,8 @@ if [[ ${#PASSWORD} -lt 8 ]]; then
   exit 1
 fi
 
-python3 "$SCRIPT_DIR/_enc_core.py" encrypt "$SCRIPT_DIR/files" "$SCRIPT_DIR/output" "$PASSWORD"
+# Pass password via stdin — never via argv (visible in ps aux)
+print "$PASSWORD" | python3 "$SCRIPT_DIR/_enc_core.py" encrypt "$SCRIPT_DIR/files" "$SCRIPT_DIR/output"
 
 PASSWORD=""
 PASSWORD2=""
