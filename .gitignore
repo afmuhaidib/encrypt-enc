@@ -1,0 +1,9 @@
+files/*
+output/*
+decrypted/*
+!files/.gitkeep
+!output/.gitkeep
+!decrypted/.gitkeep
+__pycache__/
+*.pyc
+.DS_Store
