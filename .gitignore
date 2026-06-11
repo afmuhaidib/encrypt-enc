@@ -7,3 +7,6 @@ decrypted/*
 __pycache__/
 *.pyc
 .DS_Store
+# imgenc.py key material — must never be committed
+master.key
+keystore.enc
