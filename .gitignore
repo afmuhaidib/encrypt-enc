@@ -10,3 +10,6 @@ __pycache__/
 # imgenc.py key material — must never be committed
 master.key
 keystore.enc
+input-encrypt/
+output-encrypt/
+decrypted/
