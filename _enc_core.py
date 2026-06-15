@@ -114,7 +114,7 @@ def _decrypt_worker(args):
         # Password is passed here because each file has a unique salt —
         # there is no way to pre-derive keys in the main process for decrypt.
         key       = derive_key(password, salt)
-        aad       = src.name.encode("utf-8")
+        aad       = src.stem.encode("utf-8")  # stem strips .enc to match encrypt-time AAD
         plaintext = AESGCM(key).decrypt(nonce, ciphertext, aad)
         dst.write_bytes(plaintext)
         dst.chmod(stat.S_IRUSR | stat.S_IWUSR)
