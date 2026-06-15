@@ -4,6 +4,8 @@
 
 SCRIPT_DIR="${0:A:h}"
 
+mkdir -p "$SCRIPT_DIR/input-encrypt" "$SCRIPT_DIR/output-encrypt" "$SCRIPT_DIR/decrypted"
+
 files=("$SCRIPT_DIR/output-encrypt"/*.enc(N))
 if [[ ${#files[@]} -eq 0 ]]; then
   print "No .enc files found in output-encrypt/" >&2
