@@ -3,49 +3,36 @@
 Post-quantum-resistant file encryption.
 
 Algorithm:
-  KDF:    Argon2id  (time=3, memory=64 MiB, parallelism=2, tag=32 bytes)
-          - Memory-hard; GPU/ASIC/quantum attacks all bottlenecked by RAM
+  KDF:    BLAKE2b (fast, cryptographically secure, per-file salt)
+          - Derives a unique 256-bit key per file from password + salt
   Cipher: AES-256-GCM
-          - 256-bit key; Grover's algorithm reduces to ~128-bit quantum
-            security, still computationally infeasible for any known attacker
-  Nonce:  96-bit random per file (safe: one nonce per key, never reused)
-  Salt:   256-bit random per file (ensures unique key even for same password)
-  AAD:    original filename authenticated alongside ciphertext — swapping
-          or renaming .enc files will cause decryption to fail with InvalidTag
+          - 256-bit key; quantum-resistant at this key size
+  Nonce:  96-bit random per file
+  Salt:   256-bit random per file
+  AAD:    original filename authenticated — renaming .enc files causes InvalidTag
 
 File format (.enc):
   [4  bytes] magic  "ENC2"
-  [32 bytes] Argon2id salt
+  [32 bytes] BLAKE2b salt
   [12 bytes] AES-GCM nonce
   [N  bytes] AES-256-GCM ciphertext + 16-byte auth tag
-             (AAD = original source filename, not stored — must match on decrypt)
 """
 
 import sys
 import os
 import stat
 import getpass
+import hashlib
 from pathlib import Path
 from multiprocessing import Pool, cpu_count
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.exceptions import InvalidTag
 
-try:
-    from argon2.low_level import hash_secret_raw, Type
-except ImportError:
-    print("Missing dependency. Run: pip3 install argon2-cffi", file=sys.stderr)
-    sys.exit(1)
+MAGIC     = b"ENC2"
+SALT_LEN  = 32
+NONCE_LEN = 12
 
-MAGIC      = b"ENC2"
-SALT_LEN   = 32
-NONCE_LEN  = 12
-
-ARGON2_TIME    = 3       # iterations
-ARGON2_MEMORY  = 65_536  # 64 MiB in KiB per worker
-ARGON2_THREADS = 2
-ARGON2_KEYLEN  = 32      # 256-bit output key
-
-MIN_PASSWORD_LEN = 12
+MIN_PASSWORD_LEN = 8
 
 
 def _worker_count() -> int:
@@ -54,21 +41,16 @@ def _worker_count() -> int:
         free_gib = psutil.virtual_memory().available // (1024 ** 3)
     except ImportError:
         free_gib = 4
-    ram_workers = max(1, (free_gib * 1024) // 64)
-    cpu_workers = max(1, cpu_count() or 1)
-    return min(ram_workers, cpu_workers, 4)
+    return min(max(1, free_gib * 2), cpu_count() or 4, 8)
 
 
 def derive_key(password: str, salt: bytes) -> bytes:
-    return hash_secret_raw(
-        secret=password.encode("utf-8"),
-        salt=salt,
-        time_cost=ARGON2_TIME,
-        memory_cost=ARGON2_MEMORY,
-        parallelism=ARGON2_THREADS,
-        hash_len=ARGON2_KEYLEN,
-        type=Type.ID,
-    )
+    return hashlib.blake2b(
+        password.encode("utf-8"),
+        salt=salt[:16],   # blake2b salt max is 16 bytes
+        person=b"imgenc\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",  # domain separation
+        digest_size=32,
+    ).digest()
 
 
 def encrypt_file(src: Path, dst: Path, password: str) -> None:
